@@ -34,15 +34,8 @@ from gensim.models import Word2Vec
 
 #IMPORTS DATASET AND LABELS
 print('Loading data...')
-dataset_train_label = pd.read_csv('C:/Users/Blue/Documents/MasterThesis/' +
-                                  'programming/data/data/labels/train/labels.train.csv')
-
-dataset_path = ('C:/Users/Blue/Documents/MasterThesis/programming/' +
-                'data/data/essays/train/original/')
-
-dataset_path = ('C:/Users/Blue/Documents/MasterThesis/' + 
-                   'programming/features/tokenized/essay/')
-
+'''
+dataset_train_label = pd.read_csv('./data/labels/train/labels.train.csv')
 #           changes labels index to the test_taker_id
 dataset_label = dataset_train_label.set_index('test_taker_id')
 
@@ -56,7 +49,12 @@ y = dataset_label.values
 encoder = LabelEncoder()
 encoder.fit(y)
 encoded_y = encoder.transform(y)
-y_train = np_utils.to_categorical(encoded_y)
+y_train = encoded_y#np_utils.to_categorical(encoded_y)
+
+'''
+
+#dataset_path = ('./data/essays/original/')
+dataset_path = ('./data/essays/tokenized/')
 
 
 #Prepare the input for the model
@@ -74,20 +72,27 @@ df_essay = pd.DataFrame(df).values
 vocab = []
 for file in os.listdir(dataset_path):
     read_file = open(dataset_path + str(file))
-    row = read_file.readline().split('.')
+    row = read_file.readline().split(' ')
+    while row != [''] :
+      for el in row :
+        vocab.append(el)
+      row = read_file.readline().split(' ')
     read_file.close()
-    vocab.append(row)
+    
 
 #Word2Vec
 sentences = []
 
 for file in os.listdir(dataset_path):
     read_file = open(dataset_path + str(file))
-    row = read_file.readline()
+    row = read_file.readline().split('\n')
+    while row != [''] :
+      sentences.append(row[0])
+      row = read_file.readline().split('\n')
     read_file.close()
-    sentences.append(row)
     
 sentences_2 = pd.DataFrame(sentences).values
+
     
 model = Word2Vec(size=200, min_count=0)
 model.build_vocab(vocab)
@@ -98,6 +103,9 @@ model.wv
 
 voc_vec = gensim.models.word2vec.Word2Vec(vocab, min_count=1)
 print(voc_vec)
+
+raise
+
 
 #Build vocabulary
 X = []
