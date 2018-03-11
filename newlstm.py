@@ -49,7 +49,7 @@ y = dataset_label.values
 encoder = LabelEncoder()
 encoder.fit(y)
 encoded_y = encoder.transform(y)
-y_train = encoded_y#np_utils.to_categorical(encoded_y)
+y_train = np_utils.to_categorical(encoded_y)
 
 '''
 
