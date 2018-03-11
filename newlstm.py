@@ -64,8 +64,6 @@ for file in os.listdir(dataset_path):
     row = read_file.readline().split()
     read_file.close()
     df.append(row)
-    
-df_essay = pd.DataFrame(df).values
 
 
 #Vocabulary
@@ -95,23 +93,24 @@ sentences_2 = pd.DataFrame(sentences).values
 
     
 model = Word2Vec(size=200, min_count=0)
-model.build_vocab(vocab)
+model.build_vocab(df)
 total_examples = model.corpus_count
-model.train(sentences, total_examples=11000, epochs=30)
-
-model.wv
+model.train(df, total_examples=11000, epochs=30)
 
 voc_vec = gensim.models.word2vec.Word2Vec(vocab, min_count=1)
 print(voc_vec)
-
-raise
 
 
 #Build vocabulary
 X = []
 for file in df:
-    vector = vectorizer.fit(file)
-    X.append(vector)
+    essay_sen = []
+    for word in essay:
+        if word != ' ':
+            essay_sen.append(model.wv[word])
+    X.append(essay_sen)
+    
+x = pd.DataFrame(X).values
 
 X_train = np.reshape(x, (x.shape[0], x.shape[1], 1))
 
