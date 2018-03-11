@@ -34,7 +34,6 @@ from gensim.models import Word2Vec
 
 #IMPORTS DATASET AND LABELS
 print('Loading data...')
-'''
 dataset_train_label = pd.read_csv('./data/labels/train/labels.train.csv')
 #           changes labels index to the test_taker_id
 dataset_label = dataset_train_label.set_index('test_taker_id')
@@ -51,7 +50,6 @@ encoder.fit(y)
 encoded_y = encoder.transform(y)
 y_train = np_utils.to_categorical(encoded_y)
 
-'''
 
 #dataset_path = ('./data/essays/original/')
 dataset_path = ('./data/essays/tokenized/')
