@@ -101,7 +101,7 @@ voc_vec = gensim.models.word2vec.Word2Vec(vocab, min_count=1)
 print(voc_vec)
 
 
-#Build vocabulary
+#Making the data into vectors
 X = []
 for file in df:
     essay_sen = []
