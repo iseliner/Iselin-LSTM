@@ -103,7 +103,7 @@ print(voc_vec)
 
 #Making the data into vectors
 X = []
-for file in df:
+for essay in df:
     essay_sen = []
     for word in essay:
         if word != ' ':
