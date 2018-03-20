@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Mar  5 15:48:09 2018
-
-@author: Blue
+Made by iseliner
+Still not finished and in the testing stages.
 """
 
 #Import the libraries
@@ -42,154 +41,173 @@ dataset_label = dataset_train_label.set_index('test_taker_id')
 dataset_label = dataset_label.drop('speech_prompt', axis=1)
 dataset_label = dataset_label.drop('essay_prompt', axis=1)
 
-#Make the label vectors: y_train(11000,11)
-y = dataset_label.values
+dataset_path = ('./data/data/essays/train/original')
 
+#Function which imports a datasets from a path and puts it into a list
+def makeseq(path, listname):
+    for file in os.listdir(path):
+        read_file = open(path + str(file))
+        row = read_file.read().split()
+        read_file.close()
+        listname.append(row)
+
+#Makes vectors from te lists        
+def makevectors(listname, vectorlist):
+    for essay in listname:
+        essay_sen = [np.zeros(100)] * 500
+        for i,word in enumerate(essay):
+            if word in model.wv.vocab:
+                enc = model.wv[word]
+                essay_sen[i] = enc
+            else:
+                model.build_vocab([word], update=True)
+    vectorlist.append(essay_sen)
+
+#11000 elements, each containing all words in their respective essay
+label_list = []
+x = 0
+while x < len(train_label):
+    label = train_label.iat[x,0]
+    label_list.append(str(label))
+    x += 1
+    
+df = []
+makeseq(dataset_path, df)
+
+counter = 0
+for essay in df:
+    if len(essay) > 500:
+        new_essay = essay[500:len(essay)]
+        old_new_sen = essay[0:500]
+        label = label_list[counter]
+        df[counter] = old_new_sen 
+        df.append(new_essay)
+        label_list.append(label)
+    counter += 1
+
+
+#Vocabulary (A list with all words in all essays as each individual list element)
+#vocab = []
+#for file in os.listdir(dataset_path):
+#    read_file = open(dataset_path + str(file))
+#    row = read_file.readline().split(' ')
+#    while row != [''] :
+#      for el in row :
+#        vocab.append(el)
+#      row = read_file.readline().split(' ')
+#    read_file.close()
+#vocab = df 
+
+#Trains the world2vec model to vectorize data    
+print('Initiate Word2Vec')
+model = Word2Vec(size=100, min_count=0)
+model.build_vocab(df)
+#total_examples = model.corpus_count
+print('Training Word2Vec')
+model.train(df, total_examples=11000, epochs=30)
+
+
+X = []
+for essay in df:
+    essay_sen = [np.zeros(100)] * 500
+    for i,word in enumerate(essay):
+      enc = model.wv[word]
+      essay_sen[i] = enc
+    X.append(essay_sen)
+
+find_bigrams(X)
+        
+
+#Creates the TRAINING INPUT for the model  
+x = np.array(X)
+
+X_train = np.reshape(x, (x.shape))
+
+label_train = pd.DataFrame(label_list)
+#Make the label vectors: y_train(11000,11)
+y = label_train.values
 encoder = LabelEncoder()
 encoder.fit(y)
 encoded_y = encoder.transform(y)
 y_train = np_utils.to_categorical(encoded_y)
 
-
-#dataset_path = ('./data/essays/original/')
-dataset_path = ('./data/essays/tokenized/')
-
-
-#Prepare the input for the model
-df = []
-for file in os.listdir(dataset_path):
-    read_file = open(dataset_path + str(file))
-    row = read_file.readline().split()
-    read_file.close()
-    df.append(row)
-
-
-#Vocabulary
-vocab = []
-for file in os.listdir(dataset_path):
-    read_file = open(dataset_path + str(file))
-    row = read_file.readline().split(' ')
-    while row != [''] :
-      for el in row :
-        vocab.append(el)
-      row = read_file.readline().split(' ')
-    read_file.close()
-    
-
-#Word2Vec
-sentences = []
-
-for file in os.listdir(dataset_path):
-    read_file = open(dataset_path + str(file))
-    row = read_file.readline().split('\n')
-    while row != [''] :
-      sentences.append(row[0])
-      row = read_file.readline().split('\n')
-    read_file.close()
-    
-sentences_2 = pd.DataFrame(sentences).values
-
-    
-model = Word2Vec(size=200, min_count=0)
-model.build_vocab(df)
-total_examples = model.corpus_count
-model.train(df, total_examples=11000, epochs=30)
-
-voc_vec = gensim.models.word2vec.Word2Vec(vocab, min_count=1)
-print(voc_vec)
-
-
-#Making the data into vectors
-X = []
-for essay in df:
-    essay_sen = []
-    for word in essay:
-        if word != ' ':
-            essay_sen.append(model.wv[word])
-    X.append(essay_sen)
-    
-x = pd.DataFrame(X).values
-
-X_train = np.reshape(x, (x.shape[0], x.shape[1], 1))
-
-
 #MODEL _________________________________________________________________
 print('Creating model...')
 
 #Initalizing the RNN
-model = Sequential()
+nn_model = Sequential()
 
 # Adding the first LSTM layer and some Dropout regularisation
-model.add(LSTM(units = 50, return_sequences = True, 
-               input_shape = (X_train.shape[1], 1)))
-#model.add(Dropout(0.2))
+nn_model.add(LSTM(200, return_sequences = True, 
+               input_shape = (X_train.shape[1], X_train.shape[2])))
+nn_model.add(Dropout(0.2))
 
 # Adding a second LSTM layer and some Dropout regularisation
-model.add(LSTM(units = 50, return_sequences = True))
-#model.add(Dropout(0.2))
+nn_model.add(LSTM(200, return_sequences = True))
+nn_model.add(Dropout(0.2))
 
 # Adding a third LSTM layer and some Dropout regularisation
-model.add(LSTM(units = 50, return_sequences = True))
-#model.add(Dropout(0.2))
+nn_model.add(LSTM(200, return_sequences = True))
+nn_model.add(Dropout(0.2))
 
 # Adding a fourth LSTM layer and some Dropout regularisation
-model.add(LSTM(units = 50))
-#model.add(Dropout(0.2))
+nn_nn_model.add(LSTM(200))
 
 # Adding the output layer
-model.add(Dense(units = 11))
+nn_model.add(Dense(11, activation='softmax'))
 
 #Should try the RMSPROP as optimizer
 # Compiling the RNN
-model.compile(loss = 'categorical_crossentropy', 
-              optimizer = 'adam', 
+nn_model.compile(loss = 'categorical_crossentropy', 
+              optimizer = 'rmsprop', 
               metrics=['accuracy'])
 
 
-
-#||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-#|||||||||||||||||||||||| TRAINING start ||||||||||||||||||||||||||||||||||||||
 # Fitting the RNN to the Training set
 print('Fitting data to the model...')
-model.fit(X_train, y_train, epochs = 50, batch_size = 1)
+nn_model.fit(X_train, y_train, epochs = 20, batch_size = 32)
+
+#For later scoring
+#score = model.evaluate(x_test, y_test, batch_size=16)
+
+#////////////////////////////////////////////////////////////////////////
+#TESTING ________________________________________________________________
+test_label = pd.read_csv('./data/labels/train/labels.dev.csv')
+test_path = ('./data/data/essays/dev/original')
+
+#           changes labels index to the test_taker_id
+test_label = test_label.set_index('test_taker_id')
+#           drop the prompts, since we don't use them
+test_label = test_label.drop('speech_prompt', axis=1)
+test_label = test_label.drop('essay_prompt', axis=1)
+
+y = test_label.values
+encoder = LabelEncoder()
+encoder.fit(y)
+encoded_y = encoder.transform(y)
+y_test = np_utils.to_categorical(encoded_y)
+
+#11000 elements, each containing all words in the essay
+test_df = []
+makeseq(test_path, test_df)
 
 
+test = []
+counter = 0
+for essay in test_df:
+    if len(essay) > 500:
+        old_new_sen = essay[0:500]
+        essay = old_new_sen
+    essay_sen = [np.zeros(100)] * 500
+    for i,word in enumerate(essay):
+        if word in model.wv.vocab:
+          enc = model.wv[word]
+          essay_sen[i] = enc
+        else:
+            model.build_vocab([word], update=True)
+    test.append(essay_sen)
 
+x = np.array(test)
+X_test = np.reshape(x, (x.shape))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+predicted_L2 = nn_model.evaluate(X_test, y_test, batch_size=32)
